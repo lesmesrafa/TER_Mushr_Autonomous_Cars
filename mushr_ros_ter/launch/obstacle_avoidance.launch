@@ -1,0 +1,17 @@
+<launch>
+    <arg name="control_topic" default="/car/mux/ackermann_cmd_mux/input/navigation"/>
+    <arg name="lidar_topic" default="/car/scan"/>
+    <arg name="velocity" default="1.0"/>
+    <arg name="yaw" default="0.3"/>
+    <arg name="threshold" default="7.0"/>
+    <!-- <arg name="init_pose_topic" default="/initialpose" /> -->
+    <!-- <arg name="plan_file" default="$(find mushr_ros_intro)/plans/straight_line.txt" /> -->
+
+    <node pkg="mushr_ros_ter" type="obstacle_avoidance.py" name="obstacle_avoidance" output="screen">
+        <param name="control_topic" value="$(arg control_topic)" /> 
+        <param name="lidar_topic" value="$(arg lidar_topic)" />
+        <param name="velocity" value="$(arg velocity)" />
+        <param name="yaw" value="$(arg yaw)" />
+        <param name="threshold" value="$(arg threshold)" />
+    </node>
+</launch>
