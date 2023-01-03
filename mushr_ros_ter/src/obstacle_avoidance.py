@@ -15,9 +15,9 @@ from sensor_msgs.msg import LaserScan
 from ackermann_msgs.msg import AckermannDrive, AckermannDriveStamped
 
 
-def bsic_callback(msg):
+def lidar_callback(msg):
     """
-    This function implements the Braitemberg approach.
+    This function implements the main algorithm that makes the car avoid obstacles.
 
     Args:
         msg: data read from LIDAR sensor  
@@ -33,49 +33,58 @@ def bsic_callback(msg):
         "left": mean(laser_distances[459:619]) 
         }
 
-    
+    condition_left = regions["left"] <= THRESHOLD / 4.0
+    condition_right = regions["right"] <= THRESHOLD / 4.0
+    condition_straight = regions["straight"] <= THRESHOLD
+
+    drive = None
      # Go straight
-    if (regions["straight"] >= threshold) or (regions["right"] < threshold and regions["left"] < threshold):
-        info = ">-- Go straight --<"
-        drive = AckermannDrive(speed=velocity, steering_angle=0.0) 
+    if not condition_straight or (not condition_straight and condition_right and condition_left):
+        action_info = "Go straight"
+        drive = AckermannDrive(speed=VELOCITY, steering_angle=0.0) 
     # Go right  
-    elif (regions["straight"] < threshold) and (regions["left"] < threshold) and (regions["right"] >= threshold):
-        info = ">-- Go right --<"
-        drive = AckermannDrive(speed=velocity, steering_angle=-yaw) 
+    elif condition_straight and condition_left and not condition_right:
+        action_info = "Go right"
+        drive = AckermannDrive(speed=VELOCITY, steering_angle=-YAW) 
     # Go left
-    elif (regions["straight"] < threshold) and (regions["right"] < threshold) and (regions["left"] >= threshold):
-        info = ">-- Go left --<"
-        drive = AckermannDrive(speed=velocity, steering_angle=yaw) 
+    elif condition_straight and condition_right and not condition_left:
+        action_info = "Go left"
+        drive = AckermannDrive(speed=VELOCITY, steering_angle=YAW) 
     # Go left or right
-    elif (regions["straight"] < threshold) and (regions["left"] >= threshold) and (regions["right"] >= threshold):
+    elif condition_straight and not condition_left and not condition_right:
         if regions["left"] > regions["right"]:
-            info = ">-- Go left --<"
-            drive = AckermannDrive(speed=velocity, steering_angle=yaw) 
+            action_info = "Go left"
+            drive = AckermannDrive(speed=VELOCITY, steering_angle=YAW) 
         else: 
-            info = ">-- Go right --<"
-            drive = AckermannDrive(speed=velocity, steering_angle=-yaw) 
+            action_info = "Go right"
+            drive = AckermannDrive(speed=VELOCITY, steering_angle=-YAW) 
+    # Stop
+    else:
+        action_info = "Stop"
+        drive = AckermannDrive(speed=0.0, steering_angle=0.0) 
+
             
-    rospy.loginfo(info)    
+    rospy.loginfo("Action == " + action_info)    
     pub_controls.publish(AckermannDriveStamped(drive=drive))
    
 
+def main():
     
-def bsic_ini():
-    
-    global pub_controls, velocity, yaw, threshold
+    global pub_controls, VELOCITY, YAW, THRESHOLD
     # Node name
     rospy.init_node('obstacle_avoidance', anonymous=True)
     # Environment variables
     lidar_topic = rospy.get_param("~lidar_topic")
     control_topic = rospy.get_param("~control_topic")
-    velocity = float(rospy.get_param("~velocity"))
-    yaw = float(rospy.get_param("~yaw"))
-    threshold = float(rospy.get_param("~threshold"))
+    VELOCITY = float(rospy.get_param("~velocity"))
+    YAW = float(rospy.get_param("~yaw"))
+    THRESHOLD = float(rospy.get_param("~threshold"))
     # Subscriber/publisher calls
-    rospy.Subscriber(lidar_topic, LaserScan, bsic_callback)
+    rospy.Subscriber(lidar_topic, LaserScan, lidar_callback)
     pub_controls = rospy.Publisher(control_topic, AckermannDriveStamped, queue_size=1)
-    
+
+
     rospy.spin()
     
 if __name__ == "__main__":
-    bsic_ini()
+    main()
