@@ -1,0 +1,16 @@
+<launch>
+    
+
+    <arg name="speed" default="1.0"/>
+
+
+
+    <node pkg="mushr_ros_ter" type="teb_planner.py" name="teb_planner" output="screen">
+    </node>
+
+    <node pkg="mushr_ros_ter" type="follow_path.py" name="follow_path" output="screen">
+        <param name="speed" value="$(arg speed)" />
+    </node>
+
+
+</launch>
