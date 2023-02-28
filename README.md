@@ -24,7 +24,6 @@ This project is developed in the frame of the subject "Travaux d'Études et de R
 [//]: <> (https://youtu.be/2Rhm51QhhcE)
 [![Alt text](https://img.youtube.com/vi/2Rhm51QhhcE/0.jpg)](https://www.youtube.com/watch?v=2Rhm51QhhcE)
 
-https://youtu.be/jX-FW6aGJyk
 ### Video 6: Avoid frontal-right static obstacle
 [//]: <> (https://youtu.be/jX-FW6aGJyk)
 [![Alt text](https://img.youtube.com/vi/jX-FW6aGJyk/0.jpg)](https://www.youtube.com/watch?v=jX-FW6aGJyk)
