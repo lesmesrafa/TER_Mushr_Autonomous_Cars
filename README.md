@@ -1,8 +1,27 @@
 # TER_Mushr_Autonomous_Cars
-This project is developed in the frame of the subject "Travaux d'Études et de Recherche" from MSc EIT Digital: Data Science
+
+This repository contains the code developed for the project TER2022-024 "POC_of_UcaCup" at Université Côte d'Azur. The project has been developed by  Rafael Martín Lesmes and Eduardo Freyre Gómez.
+
+The work has been supervised by Professors Frederic Precioso and Diane Lingrand.
 
 
 
+## Objectives
+The purpose of this development project is to implement a set of algorithms that allow a vehicle to perform various tasks autonomously, including getting from one point to another as quickly as possible; making two cars overtake each other without impacting each other; and avoiding both static and non-stationary objects, using the Foxglove simulator.
+
+## Introduction & Environment 
+The developed work is embedded in the open-source platform MuSHR, from which we make use of its virtual machine and a docker container that contains all the necessary configurations to start the sensors of the car as ROS packages, as well as to establish all the parameters to start the simulator.
+
+Among the most important ROS packages, is mushr_sim which, once executed, makes it possible to simulate a virtual environment in which to test the car. In addition, this package offers the possibility to control the vehicle via keyboard teleoperation or via algorithms.
+
+### Install 
+A tutorial on how to install the environment, required for this project, can be found [here](https://mushr.io/tutorials/noetic_quickstart/).
+
+
+
+
+
+## Videos:
 
 ### Video 1: Avoid non-static obstacle
 [//]: <> (https://youtu.be/CVhjEhTd9rs)
