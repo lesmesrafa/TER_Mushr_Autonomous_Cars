@@ -40,17 +40,7 @@ class TimeElasticBandController:
         # Obstacles
         self.obstacles = None
         self.min_dist_object = 1.0
-        
-        
-        self.obstacles_front = None
-        self.obstacles_right = None
-        self.obstacles_left = None
-        
-        
-        
-        # self.flag = False
-        self.path_saved = []
-   
+
         # Publishers
         self.publish_path = rospy.Publisher("/path_to_follow", Path, queue_size=1)
         # Subscribers 
