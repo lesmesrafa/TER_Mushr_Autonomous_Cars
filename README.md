@@ -18,6 +18,7 @@ Among the most important ROS packages, is mushr_sim which, once executed, makes 
 A tutorial on how to install the environment, required for this project, can be found [here](https://mushr.io/tutorials/noetic_quickstart/).
 
 
+![TER2022-024-POC_of_UcaCup-Poster pptx](https://user-images.githubusercontent.com/59580936/222240737-6f7a166b-e47f-4a54-a91d-de6c94bad68e.png)
 
 
 
