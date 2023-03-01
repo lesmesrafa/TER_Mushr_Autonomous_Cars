@@ -64,6 +64,7 @@ def follow_path():
             angle_diff = relative_angle - yaw_car
             angle_diff = math.atan2(np.sin(angle_diff), np.cos(angle_diff))
             # Loop through each position in the path
+            
             for pos in path[1:]:   
                 distance_to_target = math.sqrt((target_pos[0]- current_pose.pose.position.x)**2 + (target_pos[1] - current_pose.pose.position.y)**2)
                 # Calculate the angle to the target
@@ -75,7 +76,7 @@ def follow_path():
                 # Wrap the angle difference to [-pi, pi] range
                 angle_diff = math.atan2(np.sin(angle_diff), np.cos(angle_diff))
                 # If we are within 0.3 units of the target or we have reached the last point on the path      
-                if abs(distance_to_target) <= 0.3 or pos is path[-1]:
+                if abs(distance_to_target) <= 0.3:
                     # Set the drive speed to 0 and the steering angle to 0
                     drive = AckermannDrive(speed=0.0, steering_angle=0.0)  
                 else:
