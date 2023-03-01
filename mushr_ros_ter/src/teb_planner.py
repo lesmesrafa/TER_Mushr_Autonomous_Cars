@@ -30,7 +30,7 @@ class TimeElasticBandController:
         self.laser_start_angle = None
         self.laser_angle_increment = None
         self.laser_readings = None
-        # Set up current position
+        # Set up current car position
         self.current_pos = None
         self.xy_pos = None
         self.yaw = None
@@ -39,8 +39,12 @@ class TimeElasticBandController:
         self.old_target_pos = None
         # Obstacles
         self.obstacles = None
-        self.min_dist_object = 1.0
-
+        self.min_dist_object = 3.0 # Min distance to maintain with other objects
+        self.obstacle_right = None
+        self.obstacle_front = None
+        self.obstacle_left = None
+        self.path_saved = None
+   
         # Publishers
         self.publish_path = rospy.Publisher("/path_to_follow", Path, queue_size=1)
         # Subscribers 
@@ -88,6 +92,10 @@ class TimeElasticBandController:
         # Save laser start angle and increment
         self.laser_start_angle = msg.angle_min
         self.laser_angle_increment = msg.angle_increment
+        
+        self.obstacle_right = self.min_dist_object <= min(self.laser_readings[180:189]) <= self.min_dist_object+0.5
+        self.obstacle_front = self.min_dist_object <= min(self.laser_readings[369:379]) <= self.min_dist_object+0.5
+        self.obstacle_left = self.min_dist_object <= min(self.laser_readings[539:559]) <= self.min_dist_object+0.5
 
         
     def goal_callback(self, msg):
@@ -106,7 +114,6 @@ class TimeElasticBandController:
         angle = self.laser_start_angle + self.laser_angle_increment * index + self.yaw
         x = reading * math.cos(angle) + self.current_pos[0]
         y = reading * math.sin(angle) + self.current_pos[1]
-
         return x, y
 
 
@@ -145,15 +152,26 @@ class TimeElasticBandController:
     def get_neighbors(self, point):
             """Calculate neighbors points of 'point'.""" 
             x, y = point
-            growing_factor = 0.1
+            growing_factor = 0.1 
             neighbors = [(round(x-growing_factor,1), round(y-growing_factor,1)), (round(x-growing_factor,1), y), (round(x-growing_factor,1), round(y+growing_factor,1)), (x, round(y-growing_factor,1)), (x, round(y+growing_factor,1)), (round(x+growing_factor,1), round(y-growing_factor,1)), (round(x+growing_factor,1), y), (round(x+growing_factor,1), round(y+growing_factor,1))]
+
+            if self.obstacle_right:
+                right_points = [(round(x+growing_factor,1), round(y-growing_factor,1)), (round(x+growing_factor,1), y), (round(x+growing_factor,1), round(y+growing_factor,1))]
+                neighbors = [x for x in neighbors if x not in right_points]   
+            if self.obstacle_front:
+                front_points = [(round(x-growing_factor,1), round(y+growing_factor,1)), (x, round(y+growing_factor,1)), (round(x+growing_factor,1), round(y+growing_factor,1))]
+                neighbors = [x for x in neighbors if x not in front_points]
+            if self.obstacle_left:
+                left_points = [(round(x-growing_factor,1), round(y+growing_factor,1)), (round(x-growing_factor,1), y), (round(x-growing_factor,1), round(y-growing_factor,1))]
+                neighbors = [x for x in neighbors if x not in left_points]
+                
             return neighbors
 
 
     def calculate_cost(self, point, target):
             """Calculate cost to go from 'point' to target.""" 
             if not isinstance(target, list):
-                return abs(np.sqrt((target[0]-point[0])**2 + (target[1]-point[1])**2))
+                return np.sqrt((target[0]-point[0])**2 + (target[1]-point[1])**2)
             
 
     def check_distance(self, point, points):
@@ -242,24 +260,28 @@ class TimeElasticBandController:
             rospy.logwarn("Laser is not yet initialized, path creation.")
             return
         # Initialize start, end and obstacles
-        start = (self.xy_pos[0] + 1, self.xy_pos[1] + 1)
+        start = self.xy_pos
         end = self.target_pos
         obstacles = self.obstacles
         
         visited = {start:self.calculate_cost(start, end)}
       
         path = [start]
-       
+
         current_node = None
         # While the visited list is not empty
         while len(visited) != 0:
+        
             if len(path) == 1:
                 current_node = start
             # Get the node with the minimum cost
             current_cost = visited[current_node]
             # If the cost is below a threshold, return the path
-            if current_cost <= 0.1 or len(path) == 400*self.speed:
-                self.path_saved = path
+            if self.check_distance(self.xy_pos, obstacles) <= self.min_dist_object+1:
+                return self.path_saved
+            if current_cost <= 0.1:
+                if np.sqrt((path[-1][0]-self.target_pos[0])**2 + (path[-1][1]-self.target_pos[1])**2) < 0.5:
+                    self.path_saved = path
                 return path
             # Get the neighbors of the current node and their costs
             neighbors = self.get_neighbors(current_node)
@@ -269,42 +291,48 @@ class TimeElasticBandController:
                 if neighbor in obstacles or neighbor in visited.keys():
                     continue
                 if len(obstacles) > 5:
-                    if self.check_distance(neighbor, obstacles) <= self.min_dist_object:
-                        
-                        continue
+                    distance = self.check_distance(neighbor, obstacles)
+                    if distance <= self.min_dist_object:
+                       continue
+                    
 
                 set_neighbors[neighbor] = self.calculate_cost(neighbor, end)
             # Get the neighbor with the minimum cost and add it to the path 
             if len(set_neighbors) == 0:
-                break
+                    break
             else:
                 current_node = min(set_neighbors, key=set_neighbors.get)
                 visited[current_node] = set_neighbors[current_node]
                 path.append(current_node)
 
+
     ##############################################################################
     ################################ Run the node ################################
     ##############################################################################
 
+
     def run(self):
         """Main loop."""
-        rate = rospy.Rate(10)
+        rate = rospy.Rate(30)
         # Continuously update the map and calculate the path
         cont = 0 
         while not rospy.is_shutdown():
             self.get_obstacles()
             path = self.teb_path_generation()
-           
+            
             # If a path is found, publish it as a path message
             if path is not None:
+           
                 if self.target_pos != self.old_target_pos or cont == 0:
                     self.old_target_pos = self.target_pos 
                     cont = 0
-                    
-
+                
                 if cont == 0:
                     cont += 1
-                    path = path#self.smooth_path(self.rdp(path, epsilon=200.0))
+                    if self.path_saved is not None:
+                        path = self.path_saved 
+                        
+                    path = self.smooth_path(self.rdp(path, epsilon=20.0), 1000)
                     path_msg = Path()
                     path_msg.header.frame_id = "map"
                     for i, (x, y) in enumerate(path):
@@ -317,6 +345,9 @@ class TimeElasticBandController:
                     self.publish_path.publish(path_msg)
                     
                 else:
+                    if self.path_saved is not None:
+                        path = self.path_saved 
+                    
                     path_msg = Path()
                     path_msg.header.frame_id = "map"
                     for i, (x, y) in enumerate(path):
@@ -327,7 +358,6 @@ class TimeElasticBandController:
                         pose.pose.position.y = y
                         path_msg.poses.append(pose) 
                     self.publish_path.publish(path_msg)
-
 
             rate.sleep()
 
